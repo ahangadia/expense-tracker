@@ -1,0 +1,491 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Ledger — Expense Tracker</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&family=IBM+Plex+Mono:wght@400;500;600&display=swap');
+
+  :root{
+    --ink:#16201c;
+    --ink-light:#1f2c25;
+    --paper:#e8e4d9;
+    --paper-dim:#b9b6a9;
+    --gold:#c9a227;
+    --sage:#8fa998;
+    --rule:#3a4a40;
+    --danger:#c1573b;
+  }
+  *{box-sizing:border-box;}
+  html,body{height:100%;}
+  body{
+    margin:0;
+    background:var(--ink);
+    color:var(--paper);
+    font-family:'Source Serif 4', Georgia, serif;
+    padding:48px 24px 80px;
+    min-height:100vh;
+  }
+  .wrap{max-width:760px;margin:0 auto;}
+
+  .storage-warning{
+    background:rgba(193,87,59,0.15);
+    border:1px solid var(--danger);
+    color:var(--paper);
+    font-family:'IBM Plex Mono', monospace;
+    font-size:12px;
+    line-height:1.6;
+    padding:14px 16px;
+    margin-bottom:24px;
+    border-radius:2px;
+  }
+
+  header{
+    display:flex;
+    justify-content:space-between;
+    align-items:baseline;
+    border-bottom:2px solid var(--gold);
+    padding-bottom:18px;
+    margin-bottom:32px;
+  }
+  h1{
+    font-size:28px;
+    font-weight:600;
+    letter-spacing:0.5px;
+    margin:0;
+  }
+  .date-stamp{
+    font-family:'IBM Plex Mono', Consolas, monospace;
+    font-size:12px;
+    color:var(--paper-dim);
+  }
+
+  .balance-block{
+    display:flex;
+    gap:32px;
+    margin-bottom:36px;
+    flex-wrap:wrap;
+  }
+  .balance-card{
+    flex:1;
+    min-width:150px;
+    border:1px solid var(--rule);
+    padding:16px 18px;
+    background:var(--ink-light);
+  }
+  .balance-card .label{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:11px;
+    color:var(--sage);
+    margin-bottom:8px;
+    letter-spacing:0.3px;
+  }
+  .balance-card .value{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:24px;
+    font-weight:600;
+  }
+  .balance-card.total .value{color:var(--gold);}
+  .balance-card.spent .value{color:var(--danger);}
+
+  form{
+    display:grid;
+    grid-template-columns:1.6fr 1fr 1fr auto;
+    gap:10px;
+    margin-bottom:28px;
+  }
+  form input, form select{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:13px;
+    background:var(--ink-light);
+    border:1px solid var(--rule);
+    color:var(--paper);
+    padding:10px 12px;
+    border-radius:2px;
+  }
+  form input::placeholder{color:var(--paper-dim);}
+  form input:focus, form select:focus{outline:1px solid var(--gold);border-color:var(--gold);}
+  form button{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:13px;
+    background:var(--gold);
+    color:var(--ink);
+    border:none;
+    padding:10px 18px;
+    cursor:pointer;
+    font-weight:600;
+    border-radius:2px;
+  }
+  form button:hover{background:#dab438;}
+
+  .filters{
+    display:flex;
+    gap:8px;
+    margin-bottom:16px;
+    flex-wrap:wrap;
+  }
+  .filters button{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:11px;
+    background:transparent;
+    border:1px solid var(--rule);
+    color:var(--paper-dim);
+    padding:6px 12px;
+    cursor:pointer;
+    border-radius:20px;
+  }
+  .filters button.active{
+    border-color:var(--sage);
+    color:var(--sage);
+  }
+
+  table{
+    width:100%;
+    border-collapse:collapse;
+    margin-bottom:32px;
+  }
+  thead th{
+    text-align:left;
+    font-family:'IBM Plex Mono', monospace;
+    font-size:11px;
+    color:var(--sage);
+    font-weight:500;
+    letter-spacing:0.3px;
+    padding-bottom:10px;
+    border-bottom:1px solid var(--rule);
+  }
+  tbody td{
+    padding:12px 6px;
+    border-bottom:1px solid var(--rule);
+    font-size:14px;
+    vertical-align:middle;
+  }
+  tbody tr:hover{background:rgba(143,169,152,0.06);}
+  td.amount{
+    font-family:'IBM Plex Mono', monospace;
+    text-align:right;
+    color:var(--danger);
+  }
+  td.cat{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:11px;
+    color:var(--sage);
+  }
+  td.date{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:12px;
+    color:var(--paper-dim);
+  }
+  .del-btn{
+    background:none;
+    border:none;
+    color:var(--paper-dim);
+    cursor:pointer;
+    font-size:16px;
+    line-height:1;
+  }
+  .del-btn:hover{color:var(--danger);}
+
+  .empty{
+    text-align:center;
+    padding:48px 0;
+    color:var(--paper-dim);
+    font-style:italic;
+  }
+
+  .breakdown{
+    border-top:2px solid var(--gold);
+    padding-top:24px;
+  }
+  .breakdown h2{
+    font-size:16px;
+    font-weight:600;
+    margin:0 0 16px;
+    color:var(--gold);
+  }
+  .bar-row{
+    display:flex;
+    align-items:center;
+    gap:12px;
+    margin-bottom:10px;
+  }
+  .bar-label{
+    width:110px;
+    font-family:'IBM Plex Mono', monospace;
+    font-size:11px;
+    color:var(--sage);
+    flex-shrink:0;
+  }
+  .bar-track{
+    flex:1;
+    background:var(--ink-light);
+    height:10px;
+    border-radius:2px;
+    overflow:hidden;
+  }
+  .bar-fill{
+    height:100%;
+    background:var(--gold);
+  }
+  .bar-value{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:11px;
+    color:var(--paper-dim);
+    width:70px;
+    text-align:right;
+    flex-shrink:0;
+  }
+
+  @media (max-width:600px){
+    form{grid-template-columns:1fr 1fr;}
+    form button{grid-column:span 2;}
+    .balance-block{flex-direction:column;}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Ledger</h1>
+    <div class="date-stamp" id="todayStamp"></div>
+  </header>
+
+  <div id="storageWarning" class="storage-warning" style="display:none;">
+    ⚠ This browser isn't saving data for this page (private/incognito mode, disabled storage, or a browser restriction on local files). Entries will be lost when you close the tab. Try a normal (non-private) window in Chrome or Firefox, and open the file from a permanent folder rather than a temp download location.
+  </div>
+
+  <div class="balance-block">
+    <div class="balance-card total">
+      <div class="label">TOTAL SPENT</div>
+      <div class="value" id="totalValue">₹0.00</div>
+    </div>
+    <div class="balance-card spent">
+      <div class="label">THIS MONTH</div>
+      <div class="value" id="monthValue">₹0.00</div>
+    </div>
+    <div class="balance-card">
+      <div class="label">ENTRIES</div>
+      <div class="value" id="countValue">0</div>
+    </div>
+  </div>
+
+  <form id="expenseForm">
+    <input type="text" id="descInput" placeholder="Description" required>
+    <input type="number" id="amountInput" placeholder="Amount" step="0.01" min="0" required>
+    <select id="categoryInput">
+      <option value="Food">Food</option>
+      <option value="Transport">Transport</option>
+      <option value="Housing">Housing</option>
+      <option value="Utilities">Utilities</option>
+      <option value="Health">Health</option>
+      <option value="Leisure">Leisure</option>
+      <option value="Other">Other</option>
+    </select>
+    <button type="submit">Add</button>
+  </form>
+
+  <div class="filters" id="filters">
+    <button data-filter="All" class="active">All</button>
+  </div>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Description</th>
+        <th>Category</th>
+        <th>Date</th>
+        <th style="text-align:right;">Amount</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody id="expenseBody"></tbody>
+  </table>
+  <div class="empty" id="emptyState" style="display:none;">No entries yet — add your first expense above.</div>
+
+  <div class="breakdown">
+    <h2>By category</h2>
+    <div id="breakdownList"></div>
+  </div>
+</div>
+
+<script>
+const STORAGE_KEY = 'ledger_expenses_v1';
+let storageAvailable = true;
+let expenses = [];
+
+function testStorage(){
+  try{
+    const testKey = '__ledger_test__';
+    localStorage.setItem(testKey, '1');
+    localStorage.removeItem(testKey);
+    return true;
+  }catch(err){
+    return false;
+  }
+}
+
+function loadExpenses(){
+  if(!storageAvailable) return [];
+  try{
+    return JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+  }catch(err){
+    console.error('Ledger: failed to read saved data', err);
+    return [];
+  }
+}
+
+storageAvailable = testStorage();
+expenses = loadExpenses();
+let activeFilter = 'All';
+
+const CATEGORY_COLORS = {
+  Food:'#c9a227', Transport:'#8fa998', Housing:'#c1573b',
+  Utilities:'#7a9cc6', Health:'#b17fc4', Leisure:'#d4915d', Other:'#9a9689'
+};
+
+function save(){
+  if(!storageAvailable) return;
+  try{
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(expenses));
+  }catch(err){
+    console.error('Ledger: failed to save data', err);
+    storageAvailable = false;
+    showStorageWarning();
+  }
+}
+function fmt(n){ return '₹' + n.toLocaleString('en-IN', {minimumFractionDigits:2, maximumFractionDigits:2}); }
+
+function todayStamp(){
+  const d = new Date();
+  document.getElementById('todayStamp').textContent =
+    d.toLocaleDateString('en-US', {weekday:'short', year:'numeric', month:'short', day:'numeric'});
+}
+
+function renderFilters(){
+  const cats = ['All', ...new Set(expenses.map(e => e.category))];
+  const box = document.getElementById('filters');
+  box.innerHTML = '';
+  cats.forEach(c => {
+    const btn = document.createElement('button');
+    btn.textContent = c;
+    btn.dataset.filter = c;
+    if(c === activeFilter) btn.classList.add('active');
+    btn.onclick = () => { activeFilter = c; render(); };
+    box.appendChild(btn);
+  });
+}
+
+function renderTable(){
+  const body = document.getElementById('expenseBody');
+  const empty = document.getElementById('emptyState');
+  body.innerHTML = '';
+  const filtered = activeFilter === 'All' ? expenses : expenses.filter(e => e.category === activeFilter);
+  const sorted = [...filtered].sort((a,b) => new Date(b.date) - new Date(a.date));
+
+  if(sorted.length === 0){
+    empty.style.display = 'block';
+  } else {
+    empty.style.display = 'none';
+    sorted.forEach(e => {
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td>${escapeHtml(e.desc)}</td>
+        <td class="cat">${e.category}</td>
+        <td class="date">${new Date(e.date).toLocaleDateString('en-US',{month:'short',day:'numeric'})}</td>
+        <td class="amount">${fmt(e.amount)}</td>
+        <td><button class="del-btn" data-id="${e.id}">×</button></td>
+      `;
+      body.appendChild(tr);
+    });
+    body.querySelectorAll('.del-btn').forEach(btn => {
+      btn.onclick = () => {
+        expenses = expenses.filter(e => e.id !== btn.dataset.id);
+        save(); render();
+      };
+    });
+  }
+}
+
+function renderStats(){
+  const total = expenses.reduce((s,e) => s + e.amount, 0);
+  document.getElementById('totalValue').textContent = fmt(total);
+  document.getElementById('countValue').textContent = expenses.length;
+
+  const now = new Date();
+  const monthTotal = expenses
+    .filter(e => {
+      const d = new Date(e.date);
+      return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
+    })
+    .reduce((s,e) => s + e.amount, 0);
+  document.getElementById('monthValue').textContent = fmt(monthTotal);
+}
+
+function renderBreakdown(){
+  const box = document.getElementById('breakdownList');
+  box.innerHTML = '';
+  const byCat = {};
+  expenses.forEach(e => { byCat[e.category] = (byCat[e.category]||0) + e.amount; });
+  const total = Object.values(byCat).reduce((a,b)=>a+b,0) || 1;
+  const entries = Object.entries(byCat).sort((a,b) => b[1]-a[1]);
+
+  if(entries.length === 0){
+    box.innerHTML = '<div style="color:var(--paper-dim);font-size:13px;">Nothing to show yet.</div>';
+    return;
+  }
+
+  entries.forEach(([cat, amt]) => {
+    const pct = (amt/total) * 100;
+    const row = document.createElement('div');
+    row.className = 'bar-row';
+    row.innerHTML = `
+      <div class="bar-label">${cat}</div>
+      <div class="bar-track"><div class="bar-fill" style="width:${pct}%;background:${CATEGORY_COLORS[cat]||'#c9a227'}"></div></div>
+      <div class="bar-value">${fmt(amt)}</div>
+    `;
+    box.appendChild(row);
+  });
+}
+
+function escapeHtml(str){
+  const div = document.createElement('div');
+  div.textContent = str;
+  return div.innerHTML;
+}
+
+function render(){
+  renderFilters();
+  renderTable();
+  renderStats();
+  renderBreakdown();
+}
+
+function showStorageWarning(){
+  document.getElementById('storageWarning').style.display = 'block';
+}
+
+document.getElementById('expenseForm').addEventListener('submit', (e) => {
+  e.preventDefault();
+  const desc = document.getElementById('descInput').value.trim();
+  const amount = parseFloat(document.getElementById('amountInput').value);
+  const category = document.getElementById('categoryInput').value;
+  if(!desc || isNaN(amount) || amount <= 0) return;
+
+  expenses.push({
+    id: Date.now().toString(36) + Math.random().toString(36).slice(2),
+    desc, amount, category,
+    date: new Date().toISOString()
+  });
+  save();
+  e.target.reset();
+  document.getElementById('descInput').focus();
+  render();
+});
+
+todayStamp();
+if(!storageAvailable) showStorageWarning();
+render();
+</script>
+</body>
+</html>
